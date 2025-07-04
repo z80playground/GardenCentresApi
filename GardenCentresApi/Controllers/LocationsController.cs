@@ -116,7 +116,7 @@ namespace GardenCentresApi.Controllers
             try
             {
                 await _locationRepository.UpdateAsync(id, updatedLocation);
-                return NoContent();
+                return Ok();
             }
             catch (ArgumentException ex)
             {
@@ -142,7 +142,7 @@ namespace GardenCentresApi.Controllers
             try
             {
                 await _locationRepository.DeleteAsync(id);
-                return NoContent();
+                return Ok();
             }
             catch (InvalidOperationException ex)
             {
