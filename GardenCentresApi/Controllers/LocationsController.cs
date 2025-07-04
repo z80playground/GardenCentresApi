@@ -1,4 +1,5 @@
 ﻿using Asp.Versioning;
+using GardenCentresApi.Dto;
 using GardenCentresApi.Models;
 using GardenCentresApi.Repositories;
 using Microsoft.AspNetCore.Authorization;
@@ -66,7 +67,7 @@ namespace GardenCentresApi.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] Location location)
+        public async Task<IActionResult> Create([FromBody] CreateLocationDto location)
         {
             if (!ModelState.IsValid)
             {
@@ -82,8 +83,8 @@ namespace GardenCentresApi.Controllers
             location.Region = region; // Ensure Region matches JWT claim
             try
             {
-                await _locationRepository.AddAsync(location);
-                return CreatedAtAction(nameof(GetById), new { id = location.Id }, location);
+                var newLocation = await _locationRepository.AddAsync(location);
+                return CreatedAtAction(nameof(GetById), new { id = newLocation.Id }, newLocation);
             }
             catch (ArgumentException ex)
             {
@@ -92,9 +93,9 @@ namespace GardenCentresApi.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] Location updatedLocation)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateLocationDto updatedLocation)
         {
-            if (!ModelState.IsValid || id != updatedLocation.Id)
+            if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
@@ -114,7 +115,7 @@ namespace GardenCentresApi.Controllers
             updatedLocation.Region = region; // Ensure Region matches JWT claim
             try
             {
-                await _locationRepository.UpdateAsync(updatedLocation);
+                await _locationRepository.UpdateAsync(id, updatedLocation);
                 return NoContent();
             }
             catch (ArgumentException ex)

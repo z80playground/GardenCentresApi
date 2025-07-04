@@ -1,4 +1,5 @@
 ﻿using GardenCentresApi.Data;
+using GardenCentresApi.Dto;
 using GardenCentresApi.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -23,55 +24,89 @@ namespace GardenCentresApi.Repositories
             _region = region;
         }
 
-        public async Task<List<Location>> GetAllAsync(string region)
+        public async Task<List<LocationDto>> GetAllAsync(string region)
         {
             if (region != _region)
             {
                 throw new ArgumentException($"Region must match repository region: {_region}.", nameof(region));
             }
             return await _context.Locations
+                .AsNoTracking()
                 .Where(l => l.Region == _region)
+                .Select(l => new LocationDto
+                {
+                    Id = l.Id,
+                    Name = l.Name,
+                    Region = l.Region
+                })
                 .ToListAsync();
         }
 
-        public async Task<Location> GetByIdAsync(int id, string region)
+        public async Task<LocationDto> GetByIdAsync(int id, string region)
         {
             if (region != _region)
             {
                 throw new ArgumentException($"Region must match repository region: {_region}.", nameof(region));
             }
             return await _context.Locations
+                .AsNoTracking()
                 .Where(l => l.Id == id && l.Region == _region)
+                .Select(l => new LocationDto
+                {
+                    Id = l.Id,
+                    Name = l.Name,
+                    Region = l.Region
+                })
                 .SingleOrDefaultAsync();
         }
 
-        public async Task<List<GardenCentre>> GetGardenCentresByLocationAsync(int locationId, string region)
+        public async Task<List<GardenCentreDto>> GetGardenCentresByLocationAsync(int locationId, string region)
         {
             if (region != _region)
             {
                 throw new ArgumentException($"Region must match repository region: {_region}.", nameof(region));
             }
             return await _context.GardenCentres
+                .AsNoTracking()
                 .Where(gc => gc.LocationId == locationId && gc.Region == _region)
                 .Include(gc => gc.Location)
+                .Select(gc => new GardenCentreDto
+                {
+                    Id = gc.Id,
+                    Name = gc.Name,
+                    LocationId = gc.LocationId,
+                    Region = gc.Region,
+                    LocationName = gc.Location.Name
+                })
                 .ToListAsync();
         }
 
-        public async Task AddAsync(Location location)
+        public async Task<LocationDto> AddAsync(CreateLocationDto locationDto)
         {
-            if (location == null)
+            if (locationDto == null)
             {
-                throw new ArgumentNullException(nameof(location));
+                throw new ArgumentNullException(nameof(locationDto));
             }
-            if (location.Region != _region)
+            if (locationDto.Region != _region)
             {
-                throw new ArgumentException($"Location region must match repository region: {_region}.", nameof(location));
+                throw new ArgumentException($"Location region must match repository region: {_region}.", nameof(locationDto));
             }
+            var location = new Location()
+            {
+                Name = locationDto.Name,
+                Region = locationDto.Region
+            };
             _context.Locations.Add(location);
             await _context.SaveChangesAsync();
+            return new LocationDto()
+            {
+                Id = location.Id,
+                Name = location.Name,
+                Region = location.Region
+            };
         }
 
-        public async Task UpdateAsync(Location location)
+        public async Task UpdateAsync(int id, UpdateLocationDto location)
         {
             if (location == null)
             {
@@ -81,7 +116,12 @@ namespace GardenCentresApi.Repositories
             {
                 throw new ArgumentException($"Location region must match repository region: {_region}.", nameof(location));
             }
-            _context.Locations.Update(location);
+            _context.Locations.Update(new Location()
+            {
+                Id = id,
+                Name = location.Name,
+                Region = location.Region
+            });
             await _context.SaveChangesAsync();
         }
 
@@ -90,11 +130,16 @@ namespace GardenCentresApi.Repositories
             var location = await _context.Locations
                 .Where(l => l.Id == id && l.Region == _region)
                 .SingleOrDefaultAsync();
-            if (location != null)
+            if (location == null)
             {
-                _context.Locations.Remove(location);
-                await _context.SaveChangesAsync();
+                return;
             }
+            if (await _context.GardenCentres.AnyAsync(gc => gc.LocationId == id && gc.Region == _region))
+            {
+                throw new InvalidOperationException($"Cannot delete Location {id} as it has associated GardenCentres.");
+            }
+            _context.Locations.Remove(location);
+            await _context.SaveChangesAsync();
         }
     }
 }

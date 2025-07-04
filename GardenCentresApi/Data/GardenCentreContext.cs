@@ -7,12 +7,9 @@ namespace GardenCentresApi.Data
 {
     public class GardenCentreContext : IdentityDbContext
     {
-        private readonly IHttpContextAccessor _httpContextAccessor;
-
-        public GardenCentreContext(DbContextOptions<GardenCentreContext> options, IHttpContextAccessor httpContextAccessor)
+        public GardenCentreContext(DbContextOptions<GardenCentreContext> options)
             : base(options)
         {
-            _httpContextAccessor = httpContextAccessor;
         }
 
         public DbSet<GardenCentre> GardenCentres { get; set; }

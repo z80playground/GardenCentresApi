@@ -1,4 +1,5 @@
 ﻿using GardenCentresApi.Data;
+using GardenCentresApi.Dto;
 using GardenCentresApi.Models;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -23,7 +24,7 @@ namespace GardenCentresApi.Repositories
             _region = region;
         }
 
-        public async Task<(List<GardenCentre>, int)> GetAllAsync(int page, int pageSize, string region)
+        public async Task<(List<GardenCentreDto>, int)> GetAllAsync(int page, int pageSize, string region)
         {
             if (region != _region)
             {
@@ -40,19 +41,28 @@ namespace GardenCentresApi.Repositories
 
             var query = _context.GardenCentres
                 .AsNoTracking()
-                .Where(gc => gc.Region == _region);
+                .Where(gc => gc.Region == _region)
+                .Include(gc => gc.Location);
 
             var totalCount = await query.CountAsync();
-            var gardenCentres = await query
+            var dtos = await query
                 .OrderBy(gc => gc.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
+                .Select(gc => new GardenCentreDto
+                {
+                    Id = gc.Id,
+                    Name = gc.Name,
+                    LocationId = gc.LocationId,
+                    Region = gc.Region,
+                    LocationName = gc.Location.Name
+                })
                 .ToListAsync();
 
-            return (gardenCentres, totalCount);
+            return (dtos, totalCount);
         }
 
-        public async Task<GardenCentre> GetByIdAsync(int id, string region)
+        public async Task<GardenCentreDto> GetByIdAsync(int id, string region)
         {
             if (region != _region)
             {
@@ -61,10 +71,18 @@ namespace GardenCentresApi.Repositories
             return await _context.GardenCentres
                 .AsNoTracking()
                 .Where(gc => gc.Id == id && gc.Region == _region)
+                .Select(gc => new GardenCentreDto
+                {
+                    Id = gc.Id,
+                    Name = gc.Name,
+                    LocationId = gc.LocationId,
+                    Region = gc.Region,
+                    LocationName = gc.Location.Name
+                })
                 .SingleOrDefaultAsync();
         }
 
-        public async Task<GardenCentre> GetByIdWithLocationAsync(int id, string region)
+        public async Task<GardenCentreDto> GetByIdWithLocationAsync(int id, string region)
         {
             if (region != _region)
             {
@@ -74,10 +92,18 @@ namespace GardenCentresApi.Repositories
                 .AsNoTracking()
                 .Where(gc => gc.Id == id && gc.Region == _region)
                 .Include(gc => gc.Location)
+                .Select(gc => new GardenCentreDto
+                {
+                    Id = gc.Id,
+                    Name = gc.Name,
+                    LocationId = gc.LocationId,
+                    Region = gc.Region,
+                    LocationName = gc.Location.Name
+                })
                 .SingleOrDefaultAsync();
         }
 
-        public async Task AddAsync(GardenCentre gardenCentre)
+        public async Task AddAsync(GardenCentreDto gardenCentre)
         {
             if (gardenCentre == null)
             {
@@ -91,11 +117,16 @@ namespace GardenCentresApi.Repositories
             {
                 throw new ArgumentException($"LocationId {gardenCentre.LocationId} does not exist in region {_region}.", nameof(gardenCentre));
             }
-            _context.GardenCentres.Add(gardenCentre);
+            _context.GardenCentres.Add(new GardenCentre()
+            {
+                LocationId = gardenCentre.LocationId,
+                Name = gardenCentre.Name,
+                Region = gardenCentre.Region,
+            });
             await _context.SaveChangesAsync();
         }
 
-        public async Task UpdateAsync(GardenCentre gardenCentre)
+        public async Task UpdateAsync(GardenCentreDto gardenCentre)
         {
             if (gardenCentre == null)
             {
@@ -109,7 +140,14 @@ namespace GardenCentresApi.Repositories
             {
                 throw new ArgumentException($"LocationId {gardenCentre.LocationId} does not exist in region {_region}.", nameof(gardenCentre));
             }
-            _context.GardenCentres.Update(gardenCentre);
+            _context.GardenCentres.Update(new GardenCentre()
+            {
+                Id = gardenCentre.Id,
+                LocationId = gardenCentre.LocationId,
+                Name = gardenCentre.Name,
+                Region = gardenCentre.Region,
+            });
+
             await _context.SaveChangesAsync();
         }
 

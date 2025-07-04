@@ -1,4 +1,5 @@
 ﻿using Asp.Versioning;
+using GardenCentresApi.Dto;
 using GardenCentresApi.Models;
 using GardenCentresApi.Repositories;
 using Microsoft.AspNetCore.Authorization;
@@ -76,7 +77,7 @@ namespace GardenCentresApi.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] GardenCentre gardenCentre)
+        public async Task<IActionResult> Create([FromBody] GardenCentreDto gardenCentre)
         {
             if (!ModelState.IsValid)
             {
@@ -102,7 +103,7 @@ namespace GardenCentresApi.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] GardenCentre updatedCentre)
+        public async Task<IActionResult> Update(int id, [FromBody] GardenCentreDto updatedCentre)
         {
             if (!ModelState.IsValid || id != updatedCentre.Id)
             {
